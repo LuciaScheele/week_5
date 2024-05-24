@@ -126,9 +126,32 @@ plot <- ggplot(joined) +
 
 # to zoom in
 library(plotly)
-
 ggplotly(plot)
 
+meanmeetpoints <- joined |> 
+  filter(meet) |> 
+  mutate(E.mean = (E_rosa + E_sabi)/2,
+         N.mean= (N_rosa + E_sabi)/2)
 ```
+
+## Task 6
+ *Visualize data as timecube with plotly*
+ 
+ Finally, you can nicely visualize the meeting patterns and trajectories in a Space-Time-Cube (Hägerstraand 1970) with the package plotly. There are some nice ressources available online.
+```{r}
+joined |> 
+  filter(DateTimeRound < "2015-04-04") |> 
+  plot_ly(x = ~E_rosa, y = ~N_rosa, z = ~DateTimeRound, 
+          type = "scatter3d", mode = "lines") |> 
+  add_trace(joined,x = ~E_sabi, y = ~N_sabi, z=~DateTimeRound) |> 
+  add_markers(data= meanmeetpoints, x= ~E.mean, y= ~N.mean, z= ~DateTimeRound) |> 
+  layout(scene = list(
+    xaxis= list(title = "E"),
+    yaxis= list(title = "N"), 
+    zaxis= list(title = "Time")
+         ))
+```
+
+Somehow the frame of the markers seems to differ from the one of the joined df. Nils used another dataset (wildschwein_joined) for the add_trace command, but I am not sure what the difference to joined would be... and why my plot portrays the boar traces in 2D on the E-axis... 
 
 
