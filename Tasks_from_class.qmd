@@ -1,0 +1,134 @@
+---
+title: "Class_task"
+format: html
+---
+
+# Functions
+Anytime you use something multiple times 
+--> write a function = shorter and easy to read script!
+
+Use Browser() to debug a function (allows to use predefined objects when running single lines of function code) 
+--> write Q to exit debugging mode
+
+## Default values
+```{r}
+my_age <- function(birthday, output_unit = "days") {
+  # browser()
+    difftime(Sys.time(), birthday, units = output_unit)
+}
+
+# if not stated otherwise, our function uses the unit "days"
+my_age("1997-04-23")
+my_age("1998-09-26")
+```
+
+# Task: Writing functions 
+## BMI
+```{r}
+bmi <- function(weight, height){
+  bmi <- weight/(height)^2
+  bmi
+}
+
+bmi(60, 1.56)
+```
+
+## Celsius to Farenheit
+```{r}
+farenheit <- function(celsius){
+  fh <- celsius * 9/5 + 32
+  fh
+}
+
+farenheit(0)
+```
+
+## Euclidean DIstance
+```{r}
+ed <- function(x, y, x2, y2){
+  ed <- sqrt((x2-x)^2+(y2-y)^2)
+  ed
+}
+
+ed(1,1, 2,2)
+```
+
+# Prepare analysis 
+In the next tasks we will look for “meet” patterns in our wild boar data. To simplify this, we will only use a subset of our wild boar data: The individuals Rosa and Sabi for the timespan 01.04.2015 - 15.04.2015. You can download the dataset here wildschwein_BE_2056.csv. Import the csv as a data.frame and filter it with the aforementioned criteria. You do not need to convert the data.frame to an sf object.
+
+## Dataimport
+```{r}
+library(readr)
+
+wildschwein <- read_delim("wildschwein_BE_2056.csv", delim = ",")
+
+wildschwein
+```
+
+## Filter Data
+```{r}
+# The individuals Rosa and Sabi for the timespan 01.04.2015 - 15.04.2015
+
+library(dplyr)
+
+wildschwein <- wildschwein |> 
+  filter(TierName %in% c("Rosa", "Sabi"))
+
+# be explicit what time zone is entered 
+from <- as.POSIXct("2015-04-01", tz= "UTC")
+to <- as.POSIXct("2015-04-15", tz= "UTC")
+
+wildschwein <- wildschwein |> 
+  filter(DatetimeUTC > from, DatetimeUTC < to)
+```
+
+
+## Plot
+```{r}
+library(ggplot2)
+ggplot(wildschwein, aes(E,N, colour = "TierName"))+
+  geom_point() +
+  coord_equal()
+```
+
+## One Dataframe with time-alligned fixes
+```{r}
+library(lubridate)
+
+rounded <- wildschwein |> 
+  mutate(DateTimeRound = round_date(DatetimeUTC, "15 minutes"))
+
+sabi <- rounded |> 
+  filter(TierName=="Sabi")
+rosa <- rounded |> 
+  filter(TierName=="Rosa")
+
+joined <- sabi |> 
+  full_join(rosa, by = "DateTimeRound", suffix = c("_sabi", "_rosa"))
+
+# Function
+ed <- function(x, y, x2, y2){
+  ed <- sqrt((x2-x)^2+(y2-y)^2)
+  ed
+}
+
+joined <- joined |> 
+  mutate(distance = ed(E_sabi,N_sabi, E_rosa, N_rosa),
+         meet = distance < 100)
+
+plot <- ggplot(joined) + 
+  geom_point(aes(E_sabi, N_sabi), color = "blue") +
+  geom_point(aes(E_rosa, N_rosa), color = "red")+
+  geom_segment(data = filter(joined, meet), # filter by default only takes trues
+              aes(x = E_rosa, y = N_rosa, xend = E_sabi, yend= N_sabi), 
+              color= "black") +
+  coord_equal()
+
+# to zoom in
+library(plotly)
+
+ggplotly(plot)
+
+```
+
+
